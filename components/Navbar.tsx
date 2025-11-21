@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Hammer, Menu, ShieldCheck, Image as ImageIcon, LogOut, Users, X, Home, Settings } from 'lucide-react';
+import { Menu, ShieldCheck, Image as ImageIcon, LogOut, Users, X, Home, Settings, Hammer } from 'lucide-react';
 import { User } from '../types';
 
 interface NavbarProps {
@@ -21,12 +21,19 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, currentView, onChangeVi
     <nav className="bg-metal-900 text-white shadow-lg sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <div className="flex items-center cursor-pointer" onClick={() => onChangeView('home')}>
-            <div className="flex-shrink-0 bg-brand-600 p-2 rounded-lg">
-              <Hammer className="h-6 w-6 text-white" />
+          {/* Logo y Nombre (Con enlace externo) */}
+          <a 
+            href="https://varibericar.com/" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="flex items-center gap-2 hover:opacity-90 transition-opacity"
+            title="Visitar sitio web de Varivericar"
+          >
+            <div className="flex-shrink-0 bg-white p-1.5 rounded-lg">
+              <Hammer className="h-6 w-6 text-brand-600" />
             </div>
-            <span className="ml-3 text-xl font-bold tracking-tight">Varivericar</span>
-          </div>
+            <span className="ml-2 text-xl font-bold tracking-tight text-white">Varivericar</span>
+          </a>
           
           {user && (
             <div className="hidden md:flex items-center gap-4">

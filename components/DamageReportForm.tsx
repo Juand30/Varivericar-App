@@ -1,16 +1,16 @@
 
 import React, { useState, useRef } from 'react';
-import { Camera, Save, X, AlertCircle, CheckCircle2, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Camera, Save, X, AlertCircle, CheckCircle2, Loader2, Image as ImageIcon, Server } from 'lucide-react';
 import { ReportStatus, DamageReport, User } from '../types';
 import { analyzeDamageImages } from '../services/geminiService';
-import { db, storage } from '../services/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { collection, addDoc, setDoc, doc } from 'firebase/firestore';
+import { awsService } from '../services/firebase'; // Nuevo servicio AWS
 
 interface DamageReportFormProps {
   user: User;
   onReportSubmit: (report: DamageReport) => void;
 }
+
+const MAX_NOTES_LENGTH = 1000;
 
 const DamageReportForm: React.FC<DamageReportFormProps> = ({ user, onReportSubmit }) => {
   const [technicianName, setTechnicianName] = useState(user.name || '');
@@ -25,7 +25,7 @@ const DamageReportForm: React.FC<DamageReportFormProps> = ({ user, onReportSubmi
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const newFiles = Array.from(e.target.files);
+      const newFiles: File[] = Array.from(e.target.files);
       const validImages = newFiles.filter(file => file.type.startsWith('image/'));
       
       if (validImages.length < newFiles.length) {
@@ -41,16 +41,17 @@ const DamageReportForm: React.FC<DamageReportFormProps> = ({ user, onReportSubmi
     setImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Upload logic for Firebase
-  const uploadImagesToFirebase = async (files: File[], reportId: string): Promise<string[]> => {
+  // AWS Upload Logic
+  const uploadImagesToCloud = async (files: File[]): Promise<string[]> => {
     const urls: string[] = [];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      // Ruta: reports/ID_DEL_REPORTE/nombre_archivo
-      const storageRef = ref(storage, `reports/${reportId}/${Date.now()}_${file.name}`);
-      await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(storageRef);
-      urls.push(downloadURL);
+    for (const file of files) {
+      try {
+        const url = await awsService.uploadFile(file);
+        urls.push(url);
+      } catch (error) {
+        console.error("Error uploading file:", file.name, error);
+        throw error;
+      }
     }
     return urls;
   };
@@ -68,26 +69,25 @@ const DamageReportForm: React.FC<DamageReportFormProps> = ({ user, onReportSubmi
         
         setStatus(ReportStatus.SENDING);
 
-        // 2. Prepare ID and Upload Images to Cloud
-        const reportId = Date.now().toString(); // Simple ID based on time
-        const cloudImageUrls = await uploadImagesToFirebase(images, reportId);
+        // 2. Upload Images to AWS S3 (or Mock)
+        const cloudImageUrls = await uploadImagesToCloud(images);
 
-        // 3. Create Report Object with Cloud URLs
+        // 3. Create Report Object
+        const reportId = Date.now().toString(); 
         const newReport: DamageReport = {
           id: reportId,
           technicianName,
           licensePlate,
           notes,
-          images: [], // We don't save File objects to DB
-          firebaseImageUrls: cloudImageUrls, // Store the Cloud URLs
+          images: [], 
+          awsImageUrls: cloudImageUrls, 
           aiAnalysis: analysis,
           timestamp: Date.now(),
           userEmail: user.email
         };
 
-        // 4. Save to Firestore Database
-        // Usamos setDoc con el ID que generamos para mantener consistencia con Storage
-        await setDoc(doc(db, "reports", reportId), newReport);
+        // 4. Save Data to AWS DB (or Mock)
+        await awsService.saveData('reports', newReport);
 
         onReportSubmit(newReport);
         setStatus(ReportStatus.SUCCESS);
@@ -113,9 +113,9 @@ const DamageReportForm: React.FC<DamageReportFormProps> = ({ user, onReportSubmi
         <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
           <CheckCircle2 className="h-10 w-10 text-green-600" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Reporte Guardado!</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Reporte Enviado!</h2>
         <p className="text-gray-600 mb-6">
-          Las imágenes y el análisis se han subido a la nube correctamente.
+          Las imágenes y el análisis se han procesado en el backend AWS correctamente.
         </p>
         
         <div className="bg-gray-50 p-4 rounded-lg text-left mb-6 text-sm text-gray-700 border border-gray-200 shadow-inner">
@@ -140,9 +140,9 @@ const DamageReportForm: React.FC<DamageReportFormProps> = ({ user, onReportSubmi
       <div className="bg-gradient-to-r from-metal-800 to-metal-900 px-6 py-4">
         <h2 className="text-xl font-semibold text-white flex items-center gap-2">
           <Camera className="text-brand-500" />
-          Nuevo Reporte Varivericar
+          Nuevo Reporte (AWS Cloud)
         </h2>
-        <p className="text-metal-300 text-sm mt-1">Complete los datos y adjunte fotos. Se guardarán en la nube.</p>
+        <p className="text-metal-300 text-sm mt-1">Complete los datos. Se enviarán a la infraestructura segura.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-6">
@@ -172,9 +172,15 @@ const DamageReportForm: React.FC<DamageReportFormProps> = ({ user, onReportSubmi
         </div>
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">Notas Adicionales</label>
+          <div className="flex justify-between items-center">
+            <label className="block text-sm font-medium text-gray-700">Notas Adicionales</label>
+            <span className={`text-xs ${notes.length >= MAX_NOTES_LENGTH ? 'text-red-500 font-bold' : 'text-gray-400'}`}>
+              {notes.length} / {MAX_NOTES_LENGTH}
+            </span>
+          </div>
           <textarea
             rows={3}
+            maxLength={MAX_NOTES_LENGTH}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             className="w-full px-4 py-3 rounded-lg border border-gray-600 bg-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition outline-none resize-none"
@@ -212,7 +218,6 @@ const DamageReportForm: React.FC<DamageReportFormProps> = ({ user, onReportSubmi
                 <ImageIcon className="h-6 w-6 text-gray-500 group-hover:text-brand-600" />
               </div>
               <p className="text-gray-700 font-semibold">Abrir Galería</p>
-              <p className="text-xs text-gray-400 mt-1">Seleccionar archivos</p>
             </div>
 
             <div 
@@ -223,7 +228,6 @@ const DamageReportForm: React.FC<DamageReportFormProps> = ({ user, onReportSubmi
                 <Camera className="h-6 w-6 text-gray-500 group-hover:text-brand-600" />
               </div>
               <p className="text-gray-700 font-semibold">Usar Cámara</p>
-              <p className="text-xs text-gray-400 mt-1">Foto directa</p>
             </div>
           </div>
 
@@ -252,7 +256,7 @@ const DamageReportForm: React.FC<DamageReportFormProps> = ({ user, onReportSubmi
         {status === ReportStatus.ERROR && (
           <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg text-sm">
             <AlertCircle size={18} />
-            <span>Error al subir a la nube. Verifique su conexión o configuración de Firebase.</span>
+            <span>Error al conectar con el servidor. Verifique su conexión a AWS.</span>
           </div>
         )}
 
@@ -272,13 +276,13 @@ const DamageReportForm: React.FC<DamageReportFormProps> = ({ user, onReportSubmi
             </>
           ) : status === ReportStatus.SENDING ? (
             <>
-              <Loader2 className="animate-spin" />
-              Subiendo a Firebase...
+              <Server className="animate-pulse" />
+              Enviando a AWS...
             </>
           ) : (
             <>
               <Save size={20} />
-              Analizar y Guardar en Nube
+              Analizar y Guardar
             </>
           )}
         </button>

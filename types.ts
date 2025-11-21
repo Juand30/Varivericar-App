@@ -6,7 +6,7 @@ export interface DamageReport {
   notes: string;
   images: File[]; // Runtime use (upload process)
   imagePreviewUrls?: string[]; // Runtime use (local preview before upload)
-  firebaseImageUrls?: string[]; // Cloud Storage URLs (Firebase)
+  awsImageUrls?: string[]; // AWS S3 URLs
   aiAnalysis?: string;
   timestamp: number;
   userEmail: string;

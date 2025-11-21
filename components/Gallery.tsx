@@ -39,15 +39,15 @@ const Gallery: React.FC<GalleryProps> = ({ reports, user, onDeleteReport }) => {
 
   // Helper to get the correct image URL
   const getImageUrl = (report: DamageReport, index: number): string => {
-    // 1. Cloud Storage (Firebase) - Priority
-    if (report.firebaseImageUrls && report.firebaseImageUrls[index]) {
-        return report.firebaseImageUrls[index];
+    // 1. Cloud Storage (AWS S3) - Priority
+    if (report.awsImageUrls && report.awsImageUrls[index]) {
+        return report.awsImageUrls[index];
     }
     // 2. Runtime Preview (Current Session)
     if (report.imagePreviewUrls && report.imagePreviewUrls[index]) {
         return report.imagePreviewUrls[index];
     }
-    // 3. Legacy Fallback (if any old local data remains)
+    // 3. Legacy Fallback
     if (report.images && report.images[index] instanceof File) {
          return URL.createObjectURL(report.images[index]);
     }
@@ -56,8 +56,7 @@ const Gallery: React.FC<GalleryProps> = ({ reports, user, onDeleteReport }) => {
 
   // Helper to get count
   const getImageCount = (report: DamageReport) => {
-      // Usamos la longitud del array que tenga datos
-      if (report.firebaseImageUrls?.length) return report.firebaseImageUrls.length;
+      if (report.awsImageUrls?.length) return report.awsImageUrls.length;
       if (report.imagePreviewUrls?.length) return report.imagePreviewUrls.length;
       if (report.images?.length) return report.images.length;
       return 0;
@@ -131,20 +130,36 @@ const Gallery: React.FC<GalleryProps> = ({ reports, user, onDeleteReport }) => {
     setIsDragging(false);
   };
 
-  const handleDownloadImage = (e: React.MouseEvent) => {
+  const handleDownloadImage = async (e: React.MouseEvent) => {
     e.stopPropagation(); 
     if (!selectedReport) return;
     
     try {
-      let url = getImageUrl(selectedReport, selectedImageIndex);
+      const imageUrl = getImageUrl(selectedReport, selectedImageIndex);
       
-      // Si es una URL de Firebase, abrir en nueva pestaña es lo más seguro debido a CORS
-      // para descarga directa se requiere configuración extra en el bucket.
-      window.open(url, '_blank');
+      // Fetch image to create a blob for forced download
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `Evidencia-${selectedReport.licensePlate}-${selectedImageIndex + 1}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
 
     } catch (error) {
       console.error("Error descarga:", error);
-      alert("Error al procesar la imagen.");
+      // Fallback for basic download attribute or new tab
+      const link = document.createElement('a');
+      link.href = getImageUrl(selectedReport, selectedImageIndex);
+      link.download = `Evidencia-${selectedReport.licensePlate}.jpg`;
+      link.target = "_blank";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
   };
 
@@ -161,7 +176,7 @@ const Gallery: React.FC<GalleryProps> = ({ reports, user, onDeleteReport }) => {
           <ImageIcon className="h-12 w-12 text-gray-400" />
         </div>
         <h3 className="text-lg font-medium text-gray-900">No hay reportes aún</h3>
-        <p className="text-gray-500">Los reportes de la base de datos aparecerán aquí.</p>
+        <p className="text-gray-500">Los reportes se cargarán desde el backend.</p>
       </div>
     );
   }
@@ -394,22 +409,22 @@ const Gallery: React.FC<GalleryProps> = ({ reports, user, onDeleteReport }) => {
                 </div>
               </div>
               
-              {/* Footer con acciones para Admin (Sticky bottom) */}
+              {/* Footer con acciones para Admin */}
               {user.role === 'ADMIN' && (
                 <div className="p-4 bg-gray-50 border-t border-gray-200 flex flex-col gap-3 mt-auto flex-shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.03)] z-20">
                    <div className="flex items-center gap-2 mb-1">
                       <ShieldAlert size={14} className="text-brand-600" />
-                      <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Zona Admin</span>
+                      <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Zona Admin (AWS)</span>
                    </div>
                    
                    <button 
                     type="button"
                     onClick={handleDownloadImage}
                     className="w-full flex items-center justify-center gap-2 bg-white border border-gray-300 text-gray-700 py-3 rounded-lg text-sm font-bold hover:bg-gray-100 transition shadow-sm active:scale-[0.98]"
-                    title="Abrir original en nueva pestaña"
+                    title="Descargar imagen al dispositivo"
                    >
                     <CloudDownload size={18} className="text-blue-600" />
-                    Abrir Original
+                    Descargar Imagen
                   </button>
 
                   <button
@@ -444,19 +459,13 @@ const Gallery: React.FC<GalleryProps> = ({ reports, user, onDeleteReport }) => {
             <div className="p-6 text-center">
               <h3 className="text-xl font-bold text-gray-900 mb-2">¿Eliminar Reporte?</h3>
               <p className="text-gray-600 mb-6 leading-relaxed text-sm">
-                Estás a punto de eliminar permanentemente el reporte asociado a la siguiente matrícula:
+                Se enviará la orden de borrado a la base de datos AWS.
               </p>
 
               <div className="flex justify-center mb-6">
                  <span className="text-3xl font-black text-gray-800 bg-gray-100 px-6 py-3 rounded-lg border-2 border-gray-300 font-mono tracking-widest uppercase shadow-inner">
                     {selectedReport.licensePlate}
                  </span>
-              </div>
-
-              <div className="mb-8">
-                <span className="text-red-600 font-bold bg-red-50 px-4 py-2 rounded-full text-xs border border-red-100 uppercase tracking-wide flex items-center justify-center gap-2 w-fit mx-auto">
-                  <AlertTriangle size={14} /> Esta acción no se puede deshacer
-                </span>
               </div>
 
               <div className="flex gap-3">

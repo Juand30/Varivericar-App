@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Hammer, LogIn, Lock, Mail, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { LogIn, Lock, Mail, Eye, EyeOff, AlertCircle, Hammer } from 'lucide-react';
 import { User } from '../types';
 
 interface LoginProps {
@@ -37,8 +37,8 @@ const Login: React.FC<LoginProps> = ({ users, onLogin }) => {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl overflow-hidden">
         <div className="bg-metal-900 p-8 text-center">
-          <div className="mx-auto bg-brand-600 w-16 h-16 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-brand-500/30">
-            <Hammer className="h-8 w-8 text-white" />
+          <div className="mx-auto bg-white w-24 h-24 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-brand-500/30 p-2">
+             <Hammer size={48} className="text-brand-600" />
           </div>
           <h2 className="text-2xl font-bold text-white">Varivericar</h2>
           <p className="text-gray-400 mt-2">Sistema de Gestión Corporativa</p>
