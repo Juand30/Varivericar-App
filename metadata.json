@@ -1,0 +1,8 @@
+{
+  "name": "Varilleros Pro - Reporte de Daños",
+  "description": "Aplicación profesional para técnicos varilleros. Permite capturar, analizar y enviar reportes de daños por granizo mediante IA.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
