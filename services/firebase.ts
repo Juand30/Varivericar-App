@@ -1,67 +1,64 @@
 
-// services/aws.ts - Servicio de Backend para AWS
-// Este servicio reemplaza la lógica de Firebase.
+// services/cloud.ts - Servicio de Backend Genérico
 // Funciona en dos modos:
-// 1. MODO LOCAL (Default): Usa localStorage para simular AWS DynamoDB y S3.
-// 2. MODO AWS: Si configuras una API URL, hará fetch a tu backend real.
+// 1. MODO LOCAL (Default): Usa localStorage para simular base de datos y almacenamiento.
+// 2. MODO REMOTO: Si configuras una API URL, hará fetch a tu backend real.
 
-export interface AWSConfig {
-  apiUrl: string;       // URL de tu API Gateway o Instancia EC2 (ej: https://api.mivarillera.com)
-  s3BucketUrl?: string; // URL base de tu bucket S3 (opcional para visualización)
-  apiKey?: string;      // x-api-key para AWS Gateway (opcional)
+export interface CloudConfig {
+  apiUrl: string;       // URL de tu API (ej: https://api.mivarillera.com)
+  bucketUrl?: string;   // URL base de almacenamiento (opcional para visualización)
+  apiKey?: string;      // Header de autenticación (opcional)
 }
 
 // Configuración por defecto (Vacía = Modo Local)
-const defaultAWSConfig: AWSConfig = {
+const defaultCloudConfig: CloudConfig = {
   apiUrl: "", 
-  s3BucketUrl: "",
+  bucketUrl: "",
   apiKey: ""
 };
 
-export const getAWSConfiguration = (): AWSConfig => {
+export const getCloudConfiguration = (): CloudConfig => {
   try {
-    const stored = localStorage.getItem('varivericar_aws_config');
+    const stored = localStorage.getItem('varivericar_cloud_config');
     if (stored) {
       return JSON.parse(stored);
     }
   } catch (e) {
-    console.warn("Error cargando config AWS", e);
+    console.warn("Error cargando config Cloud", e);
   }
-  return defaultAWSConfig;
+  return defaultCloudConfig;
 };
 
-export const saveAWSConfiguration = (config: AWSConfig) => {
-  localStorage.setItem('varivericar_aws_config', JSON.stringify(config));
+export const saveCloudConfiguration = (config: CloudConfig) => {
+  localStorage.setItem('varivericar_cloud_config', JSON.stringify(config));
 };
 
 // --- SIMULACIÓN DE BASE DE DATOS LOCAL (MOCK) ---
-// Esto permite que la app funcione antes de que tengas el backend AWS listo.
 const mockDB = {
-  reports: 'mock_aws_reports',
-  users: 'mock_aws_users'
+  reports: 'mock_cloud_reports',
+  users: 'mock_cloud_users'
 };
 
 // --- CLIENTE API (HÍBRIDO) ---
 
-export const awsService = {
+export const cloudService = {
   
-  // 1. Subida de Archivos (Simula S3 PUT o usa API real)
+  // 1. Subida de Archivos (Simula PUT o usa API real)
   uploadFile: async (file: File): Promise<string> => {
-    const config = getAWSConfiguration();
+    const config = getCloudConfiguration();
 
     if (config.apiUrl) {
       // MODO REAL: Solicitar URL firmada y subir
-      // Paso 1: Pedir Presigned URL a tu backend
       const presignRes = await fetch(`${config.apiUrl}/upload-request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey || '' },
         body: JSON.stringify({ fileName: file.name, fileType: file.type })
       });
       
-      if (!presignRes.ok) throw new Error('AWS S3 Sign Failed');
+      if (!presignRes.ok) throw new Error('Cloud Sign Failed');
       const { uploadUrl, publicUrl } = await presignRes.json();
 
-      // Paso 2: PUT directo a S3
+      // PUT directo
       await fetch(uploadUrl, {
         method: 'PUT',
         body: file,
@@ -79,9 +76,9 @@ export const awsService = {
     }
   },
 
-  // 2. Guardar Datos (Simula DynamoDB PutItem)
+  // 2. Guardar Datos
   saveData: async (collection: 'reports' | 'users', data: any) => {
-    const config = getAWSConfiguration();
+    const config = getCloudConfiguration();
 
     if (config.apiUrl) {
       // MODO REAL: POST a tu API
@@ -90,7 +87,7 @@ export const awsService = {
         headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey || '' },
         body: JSON.stringify(data)
       });
-      if (!res.ok) throw new Error('AWS Save Failed');
+      if (!res.ok) throw new Error('Cloud Save Failed');
       return await res.json();
     } else {
       // MODO LOCAL
@@ -109,9 +106,9 @@ export const awsService = {
     }
   },
 
-  // 3. Obtener Datos (Simula DynamoDB Scan/Query)
+  // 3. Obtener Datos
   getData: async (collection: 'reports' | 'users') => {
-    const config = getAWSConfiguration();
+    const config = getCloudConfiguration();
 
     if (config.apiUrl) {
       // MODO REAL: GET a tu API
@@ -119,7 +116,7 @@ export const awsService = {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey || '' }
       });
-      if (!res.ok) throw new Error('AWS Fetch Failed');
+      if (!res.ok) throw new Error('Cloud Fetch Failed');
       return await res.json();
     } else {
       // MODO LOCAL
@@ -130,7 +127,7 @@ export const awsService = {
       if (collection === 'users' && data.length === 0) {
         data = [{
            id: 'admin-default',
-           name: 'Admin AWS',
+           name: 'Admin System',
            email: 'juandp2290@gmail.com',
            password: 'admin123', 
            role: 'ADMIN'
@@ -143,7 +140,7 @@ export const awsService = {
 
   // 4. Borrar Datos
   deleteData: async (collection: 'reports' | 'users', id: string) => {
-    const config = getAWSConfiguration();
+    const config = getCloudConfiguration();
 
     if (config.apiUrl) {
       // MODO REAL: DELETE a tu API

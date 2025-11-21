@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Save, Server, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
-import { getAWSConfiguration, saveAWSConfiguration, AWSConfig } from '../services/firebase'; // Usando el archivo que ahora contiene lógica AWS
+import { getCloudConfiguration, saveCloudConfiguration, CloudConfig } from '../services/firebase';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -15,7 +15,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 
   useEffect(() => {
     if (isOpen) {
-      const config = getAWSConfiguration();
+      const config = getCloudConfiguration();
       setApiUrl(config.apiUrl || '');
       setApiKey(config.apiKey || '');
     }
@@ -24,13 +24,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const handleSave = () => {
     setStatus('saving');
     
-    const newConfig: AWSConfig = {
+    const newConfig: CloudConfig = {
       apiUrl: apiUrl.trim(),
       apiKey: apiKey.trim(),
-      s3BucketUrl: '' // Placeholder por ahora
+      bucketUrl: ''
     };
 
-    saveAWSConfiguration(newConfig);
+    saveCloudConfiguration(newConfig);
 
     setTimeout(() => {
       setStatus('success');
@@ -42,7 +42,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 
   const handleReset = () => {
       if(window.confirm("Se borrará la configuración y la app pasará a MODO MOCK (Local).")) {
-          localStorage.removeItem('varivericar_aws_config');
+          localStorage.removeItem('varivericar_cloud_config');
           window.location.reload();
       }
   }
@@ -60,8 +60,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               <Server size={20} className="text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">Configuración Backend AWS</h3>
-              <p className="text-xs text-gray-400">Conecta la app a tu API Gateway</p>
+              <h3 className="text-lg font-bold text-white">Configuración del Servidor</h3>
+              <p className="text-xs text-gray-400">Conecta la app a tu API</p>
             </div>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-white transition">
@@ -86,13 +86,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 <div className="mt-0.5"><Server size={16} /></div>
                 <div>
                   <p className="font-bold mb-1">Modo de Operación:</p>
-                  <p>Si dejas los campos vacíos, la aplicación funcionará en <b>Modo Simulación</b> (Mock) usando almacenamiento local. Rellénalos cuando tengas tu backend AWS desplegado.</p>
+                  <p>Si dejas los campos vacíos, la aplicación funcionará en <b>Modo Simulación</b> (Mock) usando almacenamiento local. Rellénalos cuando tengas tu servidor remoto desplegado.</p>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">API Gateway URL</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">URL del Servidor API</label>
                   <input 
                     type="url"
                     value={apiUrl}

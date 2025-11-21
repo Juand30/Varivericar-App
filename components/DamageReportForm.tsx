@@ -3,7 +3,7 @@ import React, { useState, useRef } from 'react';
 import { Camera, Save, X, AlertCircle, CheckCircle2, Loader2, Image as ImageIcon, Server } from 'lucide-react';
 import { ReportStatus, DamageReport, User } from '../types';
 import { analyzeDamageImages } from '../services/geminiService';
-import { awsService } from '../services/firebase'; // Nuevo servicio AWS
+import { cloudService } from '../services/firebase';
 
 interface DamageReportFormProps {
   user: User;
@@ -41,12 +41,12 @@ const DamageReportForm: React.FC<DamageReportFormProps> = ({ user, onReportSubmi
     setImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  // AWS Upload Logic
+  // Cloud Upload Logic
   const uploadImagesToCloud = async (files: File[]): Promise<string[]> => {
     const urls: string[] = [];
     for (const file of files) {
       try {
-        const url = await awsService.uploadFile(file);
+        const url = await cloudService.uploadFile(file);
         urls.push(url);
       } catch (error) {
         console.error("Error uploading file:", file.name, error);
@@ -69,7 +69,7 @@ const DamageReportForm: React.FC<DamageReportFormProps> = ({ user, onReportSubmi
         
         setStatus(ReportStatus.SENDING);
 
-        // 2. Upload Images to AWS S3 (or Mock)
+        // 2. Upload Images to Cloud (or Mock)
         const cloudImageUrls = await uploadImagesToCloud(images);
 
         // 3. Create Report Object
@@ -80,14 +80,14 @@ const DamageReportForm: React.FC<DamageReportFormProps> = ({ user, onReportSubmi
           licensePlate,
           notes,
           images: [], 
-          awsImageUrls: cloudImageUrls, 
+          cloudImageUrls: cloudImageUrls, 
           aiAnalysis: analysis,
           timestamp: Date.now(),
           userEmail: user.email
         };
 
-        // 4. Save Data to AWS DB (or Mock)
-        await awsService.saveData('reports', newReport);
+        // 4. Save Data to Cloud DB (or Mock)
+        await cloudService.saveData('reports', newReport);
 
         onReportSubmit(newReport);
         setStatus(ReportStatus.SUCCESS);
@@ -115,7 +115,7 @@ const DamageReportForm: React.FC<DamageReportFormProps> = ({ user, onReportSubmi
         </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Reporte Enviado!</h2>
         <p className="text-gray-600 mb-6">
-          Las imágenes y el análisis se han procesado en el backend AWS correctamente.
+          Las imágenes y el análisis se han procesado en el backend correctamente.
         </p>
         
         <div className="bg-gray-50 p-4 rounded-lg text-left mb-6 text-sm text-gray-700 border border-gray-200 shadow-inner">
@@ -140,7 +140,7 @@ const DamageReportForm: React.FC<DamageReportFormProps> = ({ user, onReportSubmi
       <div className="bg-gradient-to-r from-metal-800 to-metal-900 px-6 py-4">
         <h2 className="text-xl font-semibold text-white flex items-center gap-2">
           <Camera className="text-brand-500" />
-          Nuevo Reporte (AWS Cloud)
+          Nuevo Reporte
         </h2>
         <p className="text-metal-300 text-sm mt-1">Complete los datos. Se enviarán a la infraestructura segura.</p>
       </div>
@@ -256,7 +256,7 @@ const DamageReportForm: React.FC<DamageReportFormProps> = ({ user, onReportSubmi
         {status === ReportStatus.ERROR && (
           <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg text-sm">
             <AlertCircle size={18} />
-            <span>Error al conectar con el servidor. Verifique su conexión a AWS.</span>
+            <span>Error al conectar con el servidor.</span>
           </div>
         )}
 
@@ -277,7 +277,7 @@ const DamageReportForm: React.FC<DamageReportFormProps> = ({ user, onReportSubmi
           ) : status === ReportStatus.SENDING ? (
             <>
               <Server className="animate-pulse" />
-              Enviando a AWS...
+              Enviando a la nube...
             </>
           ) : (
             <>

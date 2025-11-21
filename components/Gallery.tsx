@@ -39,9 +39,9 @@ const Gallery: React.FC<GalleryProps> = ({ reports, user, onDeleteReport }) => {
 
   // Helper to get the correct image URL
   const getImageUrl = (report: DamageReport, index: number): string => {
-    // 1. Cloud Storage (AWS S3) - Priority
-    if (report.awsImageUrls && report.awsImageUrls[index]) {
-        return report.awsImageUrls[index];
+    // 1. Cloud Storage - Priority
+    if (report.cloudImageUrls && report.cloudImageUrls[index]) {
+        return report.cloudImageUrls[index];
     }
     // 2. Runtime Preview (Current Session)
     if (report.imagePreviewUrls && report.imagePreviewUrls[index]) {
@@ -56,7 +56,7 @@ const Gallery: React.FC<GalleryProps> = ({ reports, user, onDeleteReport }) => {
 
   // Helper to get count
   const getImageCount = (report: DamageReport) => {
-      if (report.awsImageUrls?.length) return report.awsImageUrls.length;
+      if (report.cloudImageUrls?.length) return report.cloudImageUrls.length;
       if (report.imagePreviewUrls?.length) return report.imagePreviewUrls.length;
       if (report.images?.length) return report.images.length;
       return 0;
@@ -414,7 +414,7 @@ const Gallery: React.FC<GalleryProps> = ({ reports, user, onDeleteReport }) => {
                 <div className="p-4 bg-gray-50 border-t border-gray-200 flex flex-col gap-3 mt-auto flex-shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.03)] z-20">
                    <div className="flex items-center gap-2 mb-1">
                       <ShieldAlert size={14} className="text-brand-600" />
-                      <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Zona Admin (AWS)</span>
+                      <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Zona Admin</span>
                    </div>
                    
                    <button 
@@ -459,7 +459,7 @@ const Gallery: React.FC<GalleryProps> = ({ reports, user, onDeleteReport }) => {
             <div className="p-6 text-center">
               <h3 className="text-xl font-bold text-gray-900 mb-2">¿Eliminar Reporte?</h3>
               <p className="text-gray-600 mb-6 leading-relaxed text-sm">
-                Se enviará la orden de borrado a la base de datos AWS.
+                Se enviará la orden de borrado a la base de datos.
               </p>
 
               <div className="flex justify-center mb-6">

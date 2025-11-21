@@ -10,7 +10,7 @@ import NotificationSystem from './components/NotificationSystem';
 import SettingsModal from './components/SettingsModal';
 import { Smartphone, Zap, CheckCircle, Wifi, WifiOff, Server } from 'lucide-react';
 import { User, DamageReport, Notification } from './types';
-import { awsService } from './services/firebase'; // Importamos el nuevo servicio AWS
+import { cloudService } from './services/firebase'; // Importamos el servicio cloud
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -23,18 +23,18 @@ function App() {
   const [users, setUsers] = useState<User[]>([]);
   const [reports, setReports] = useState<DamageReport[]>([]);
 
-  // --- Polling para simular tiempo real o actualizar datos de API AWS ---
+  // --- Polling para simular tiempo real o actualizar datos ---
   const fetchData = useCallback(async () => {
     try {
-      const usersData = await awsService.getData('users');
+      const usersData = await cloudService.getData('users');
       setUsers(usersData);
 
-      const reportsData = await awsService.getData('reports');
+      const reportsData = await cloudService.getData('reports');
       // Ordenar por fecha descendente
       reportsData.sort((a: DamageReport, b: DamageReport) => b.timestamp - a.timestamp);
       setReports(reportsData);
     } catch (error) {
-      console.error("Error fetching data from AWS/Mock:", error);
+      console.error("Error fetching data from Cloud/Mock:", error);
     }
   }, []);
 
@@ -92,10 +92,10 @@ function App() {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
-  // --- User Management Logic (AWS Service) ---
+  // --- User Management Logic (Cloud Service) ---
   const handleAddUser = async (newUser: User) => {
     try {
-      await awsService.saveData('users', newUser);
+      await cloudService.saveData('users', newUser);
       fetchData(); // Refrescar inmediato
       addNotification({
         id: Date.now().toString(),
@@ -109,7 +109,7 @@ function App() {
       addNotification({
         id: Date.now().toString(),
         title: 'Error',
-        message: 'No se pudo guardar en AWS.',
+        message: 'No se pudo guardar.',
         type: 'warning',
         timestamp: Date.now()
       });
@@ -118,7 +118,7 @@ function App() {
 
   const handleUpdateUser = async (updatedUser: User) => {
     try {
-      await awsService.saveData('users', updatedUser);
+      await cloudService.saveData('users', updatedUser);
       fetchData();
       addNotification({
         id: Date.now().toString(),
@@ -136,7 +136,7 @@ function App() {
     try {
       const userToDelete = users.find(u => u.email === email);
       if (userToDelete && userToDelete.id) {
-        await awsService.deleteData('users', userToDelete.id);
+        await cloudService.deleteData('users', userToDelete.id);
         fetchData();
         addNotification({
           id: Date.now().toString(),
@@ -164,7 +164,7 @@ function App() {
 
   const handleDeleteReport = async (reportId: string) => {
     try {
-      await awsService.deleteData('reports', reportId);
+      await cloudService.deleteData('reports', reportId);
       fetchData();
       addNotification({
         id: Date.now().toString(),
@@ -207,7 +207,7 @@ function App() {
 
       {!isOnline && (
         <div className="bg-yellow-500 text-white text-xs text-center py-1 flex items-center justify-center gap-2">
-          <WifiOff size={12} /> Estás desconectado. Verificando conexión a AWS...
+          <WifiOff size={12} /> Estás desconectado. Verificando conexión al servidor...
         </div>
       )}
 
@@ -249,7 +249,7 @@ function App() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Server size={18} className="text-orange-500" />
-                      <span>AWS Cloud</span>
+                      <span>Nube Segura</span>
                     </div>
                   </div>
                 </div>
@@ -267,7 +267,7 @@ function App() {
                     <Smartphone className="text-brand-600" />
                   </div>
                   <h3 className="font-bold text-gray-900 text-lg mb-2">Captura Móvil</h3>
-                  <p className="text-gray-600">Sube fotos directamente a S3. Tus datos están seguros en la infraestructura de AWS.</p>
+                  <p className="text-gray-600">Sube fotos directamente al servidor seguro.</p>
                 </div>
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition">
                   <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center mb-4">
@@ -280,8 +280,8 @@ function App() {
                   <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center mb-4">
                     <Server className="text-orange-600" />
                   </div>
-                  <h3 className="font-bold text-gray-900 text-lg mb-2">Backend AWS</h3>
-                  <p className="text-gray-600">Arquitectura preparada para escalar usando API Gateway, Lambda y DynamoDB.</p>
+                  <h3 className="font-bold text-gray-900 text-lg mb-2">Infraestructura Cloud</h3>
+                  <p className="text-gray-600">Arquitectura preparada para escalar en la nube de forma segura y confiable.</p>
                 </div>
               </div>
             </section>
@@ -312,7 +312,7 @@ function App() {
       <footer className="bg-white border-t border-gray-200 py-8">
         <div className="max-w-7xl mx-auto px-4 text-center text-gray-500 text-sm">
           <p>&copy; {new Date().getFullYear()} Varivericar Systems. Todos los derechos reservados.</p>
-          <p className="mt-2 text-xs text-gray-400">Powered by Gemini API & Amazon Web Services</p>
+          <p className="mt-2 text-xs text-gray-400">Powered by Gemini API</p>
         </div>
       </footer>
 

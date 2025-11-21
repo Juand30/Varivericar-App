@@ -6,7 +6,7 @@ export interface DamageReport {
   notes: string;
   images: File[]; // Runtime use (upload process)
   imagePreviewUrls?: string[]; // Runtime use (local preview before upload)
-  awsImageUrls?: string[]; // AWS S3 URLs
+  cloudImageUrls?: string[]; // Remote URLs
   aiAnalysis?: string;
   timestamp: number;
   userEmail: string;
