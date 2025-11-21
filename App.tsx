@@ -229,13 +229,13 @@ function App() {
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                 <div className="text-center max-w-2xl mx-auto mb-10">
                   <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 leading-tight">
-                    Gestión Inteligente de <br />
+                    Gestión Inteligente de Varilleros<br />
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-blue-300">
                       Daños por Granizo
                     </span>
                   </h1>
                   <p className="text-lg text-gray-300 mb-8">
-                    Plataforma corporativa AWS. Captura, analiza con IA y gestiona reportes escalables.
+                    Plataforma corporativa. Captura, analiza con IA y gestiona reportes escalables.
                   </p>
                   
                   <div className="flex justify-center gap-6 text-sm font-medium text-gray-400">
