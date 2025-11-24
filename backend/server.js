@@ -36,7 +36,14 @@ const distPath = path.join(__dirname, '../dist');
 // Middleware para verificar si existe el build
 app.use((req, res, next) => {
   if (req.method === 'GET' && !fs.existsSync(distPath) && !req.path.startsWith('/api')) {
-    return res.status(503).send('<h1>Sitio en mantenimiento</h1><p>El sistema se está compilando. Intente en unos segundos.</p>');
+    console.error(`❌ ERROR: No se encuentra la carpeta build en: ${distPath}`);
+    return res.status(503).send(`
+      <div style="font-family:sans-serif; text-align:center; padding:50px;">
+        <h1>Sitio en inicialización</h1>
+        <p>El sistema se está compilando o no se encuentra la carpeta 'dist'.</p>
+        <p>Si eres el administrador: Ejecuta <code>npm run build</code> en la raíz.</p>
+      </div>
+    `);
   }
   next();
 });
@@ -135,7 +142,9 @@ app.get('*', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+// Escuchar explícitamente en 0.0.0.0 para aceptar conexiones externas en EC2
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Servidor backend iniciado en puerto ${PORT}`);
+  console.log(`📡 Escuchando en todas las interfaces (0.0.0.0)`);
   console.log(`📂 Sirviendo frontend desde: ${distPath}`);
 });
